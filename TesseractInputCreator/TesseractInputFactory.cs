@@ -113,7 +113,8 @@ namespace TesseractInputCreator
 
             // Generate the boxes and the image
             BoxObject[] retVal = GetBoxes(fontToUse, inputText, startX, starty);
-            drawing.DrawString(inputText, fontToUse, textBrush, startX, starty);
+            // String format generic typographic removes the leftmost padding which we don't account for in the boxes
+            drawing.DrawString(inputText, fontToUse, textBrush, startX, starty, StringFormat.GenericTypographic);
 
             return retVal;
         }
