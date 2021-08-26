@@ -96,8 +96,8 @@ namespace TesseractInputCreator
 
             // Do we need to scale down the font size? 
             // The -50 allows for border margins
-            double widthRatio = (double)textSize.Width / ((double)bitmap.Width - (margin*2));
-            double heightRatio = (double)textSize.Height / ((double)bitmap.Height - (margin*2));
+            double widthRatio = (double)textSize.Width / ((double)bitmap.Width - (margin * 2));
+            double heightRatio = (double)textSize.Height / ((double)bitmap.Height - (margin * 2));
             double biggest = widthRatio > heightRatio ? widthRatio : heightRatio;
 
             Font fontToUse = new Font(font, font.Style);
@@ -107,14 +107,22 @@ namespace TesseractInputCreator
             //create a brush for the text
             Brush textBrush = new SolidBrush(Color.Black);
 
+
+            // If you wanted to multiline this you need to find the start position for the first line
+            // and the start position for the second line.
+            // This assumes you have split the text into two lines already
+            // (easy to do by cutting the original string in half)
             textSize = drawing.MeasureString(inputText, font);
             int startX = bitmap.Width / 2 - ((int)textSize.Width / 2);
-            int starty = bitmap.Height / 2 - ((int)textSize.Height / 2);
+            int startY = bitmap.Height / 2 - ((int)textSize.Height / 2);
+
+            startX = 0;
+            startY = 0;
 
             // Generate the boxes and the image
-            BoxObject[] retVal = GetBoxes(fontToUse, inputText, startX, starty);
+            BoxObject[] retVal = GetBoxes(fontToUse, inputText, startX, startY);
             // String format generic typographic removes the leftmost padding which we don't account for in the boxes
-            drawing.DrawString(inputText, fontToUse, textBrush, startX, starty, StringFormat.GenericTypographic);
+            drawing.DrawString(inputText, fontToUse, textBrush, startX, startY, StringFormat.GenericTypographic);
 
             return retVal;
         }
@@ -144,7 +152,7 @@ namespace TesseractInputCreator
 
         private static BoxObject[] GetBoxes(Font font, string text, int startXPosition, int startYPosition)
         {
-            int left = startXPosition;
+            int runningX = startXPosition;
 
             // Dummy bitmap for string measuring
             Image tempImage = new Bitmap(1, 1);
@@ -157,40 +165,88 @@ namespace TesseractInputCreator
 
                 //actual width is the (width of XX) - (width of X) to ignore padding
                 var size = tempGraphics.MeasureString("" + ch, font);
-                var size2 = tempGraphics.MeasureString("" + ch + ch, font);
 
                 using (Bitmap b = new Bitmap((int)size.Width + 2, (int)size.Height + 2))
                 {
                     using (Graphics g = Graphics.FromImage(b))
                     {
                         // Place the character on a canvas
-                        g.FillRectangle(Brushes.White, 0, 0, size.Width, size.Height);
-                        g.DrawString("" + ch, font, Brushes.Black, 0, 0);
-                        int top = -1;
-                        int bottom = -1;
+                        g.FillRectangle(Brushes.White, 0, 0, size.Width + 1, size.Height + 1);
+                        g.DrawString("" + ch, font, Brushes.Black, 0, 0, StringFormat.GenericTypographic);
 
-                        //find the top row
-                        for (int y = 0; top < 0 && y < (int)size.Height - 1; y++)
-                            for (int x = 0; x < (int)size.Width; x++)
-                                if (b.GetPixel(x, y).B < 2)
+                        int left = 0, right = 0, top = 0, bottom = 0;
+
+                        bool broken = false;
+                        for (int x = 1; x < b.Width; x++)
+                        {
+                            if (broken)
+                                break;
+                            for (int y = 1; y < b.Height - 1; y++)
+                                if(IsNotWhite(b.GetPixel(x, y)))
+                                {
+                                    left = x;
+
+                                    broken = true;
+                                    break;
+                                }
+                        }
+
+                        broken = false;
+                        for (int x = b.Width - 2; x >= left; x--)
+                        {
+                            if (broken)
+                                break;
+                            for (int y = 1; y < b.Height - 1; y++)
+                                if (IsNotWhite(b.GetPixel(x, y)))
+                                {
+                                    right = x;
+
+                                    broken = true;
+                                    break;
+                                }
+                        }
+
+                        broken = false;
+                        for (int y = 1; y < b.Height; y++)
+                        {
+                            if (broken)
+                                break;
+                            for (int x = left; x < right; x++)
+                                if (IsNotWhite(b.GetPixel(x, y)))
                                 {
                                     top = y;
+
+                                    broken = true;
                                     break;
                                 }
+                        }
 
-                        //find the bottom row
-                        for (int y = (int)(size.Height - 1); bottom < 0 && y > 1; y--)
-                            for (int x = 0; x < (int)size.Width - 1; x++)
-                                if (b.GetPixel(x, y).B < 2)
+                        broken = false;
+                        for (int y = b.Height - 2; y >= top; y--)
+                        {
+                            if (broken)
+                                break;
+
+                            for (int x = left; x < right; x++)
+                                if (IsNotWhite(b.GetPixel(x, y)))
                                 {
                                     bottom = y;
+
+                                    broken = true;
                                     break;
                                 }
+                        }
 
-                        Rectangle rect = new Rectangle(left, startYPosition + top, (int)(size2.Width - size.Width), bottom - top);
+                        //g.DrawLine(Pens.Black, new Point(0, 16), new Point(b.Width, 16));
+                        //b.Save(@"C:\Users\Cooper\Desktop\Temp\bullshit.png");
+
+                        //Console.WriteLine(String.Format("{0}, {1}, {2}, {3}", left, right, top, bottom));
+;
+                        Rectangle rect = new Rectangle(runningX + left, startYPosition + top, right - left, bottom - top);
                         boxes[i] = new BoxObject(ch, rect);
+
+                        runningX += right;
                     }
-                    left += (int)(size2.Width - size.Width);
                 }
             }
 
@@ -198,6 +254,12 @@ namespace TesseractInputCreator
             return boxes;
         }
 
-        #endregion
+        public static bool IsNotWhite(Color col)
+        {
+            return col.R < .5f || col.G < .5f || col.B < .5f;
+        }
     }
+
+    #endregion
 }
+
