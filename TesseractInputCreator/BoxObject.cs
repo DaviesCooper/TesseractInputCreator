@@ -46,29 +46,6 @@ namespace TesseractInputCreator
         }
 
         #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// *symbol* *left* *bottom* *right* *top* *page*
-        /// <para/>
-        /// Note: Page will always be 0 for our purposes.
-        /// </summary>
-        /// <returns>The Box object formatted in .box format as <a href="https://github.com/tesseract-ocr/tessdoc/blob/master/tess4/TrainingTesseract-4.00.md#making-box-files">specified by Tesseract.</a></returns>
-        public override string ToString()
-        {
-            return String.Format
-            (
-                "{0} {1} {2} {3} {4} 0",
-                symbol,
-                rectangle.Left.ToString(),
-                rectangle.Bottom.ToString(),
-                rectangle.Right.ToString(),
-                rectangle.Top.ToString()
-            );
-        }
-
-        #endregion
     }
 
     

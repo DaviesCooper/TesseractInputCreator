@@ -108,6 +108,10 @@ namespace TesseractInputCreator
 
         /// <summary>
         /// Saves the boxObjects of the input to a .box file specified by the path.
+        /// <para/>
+        /// *IMPORTANT*: The Rectangle of the graphics are top-left origined while
+        /// the rectangle used for tesseract is bottom-left oriented. This save method
+        /// performs the conversion to have them all be bottom-left oriented.
         /// </summary>
         /// <param name="filePath">The path to save this .box to</param>
         private void SaveBOX(string filePath)
@@ -116,7 +120,16 @@ namespace TesseractInputCreator
             {
                 foreach (BoxObject obj in symbolBoxes)
                 {
-                    writer.WriteLine(obj.ToString());
+                    string toWrite = String.Format
+                    (
+                        "{0} {1} {2} {3} {4} 0",
+                        obj.symbol == '\n' ? '\t' : obj.symbol,
+                        obj.rectangle.Left.ToString(),
+                        (image.Height - obj.rectangle.Bottom).ToString(),
+                        obj.rectangle.Right.ToString(),
+                        (image.Height - obj.rectangle.Top).ToString()
+                    );
+                    writer.WriteLine(toWrite);
                 }
                 writer.Flush();
             }
@@ -150,7 +163,7 @@ namespace TesseractInputCreator
         {
             Image clone = new Bitmap(image.Width, image.Height);
             Graphics g = Graphics.FromImage(clone);
-            g.DrawImage(image, new Point(0,0));
+            g.DrawImage(image, new Point(0, 0));
             g.Dispose();
             return clone;
         }
