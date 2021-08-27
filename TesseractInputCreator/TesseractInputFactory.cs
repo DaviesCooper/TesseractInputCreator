@@ -9,9 +9,6 @@ namespace TesseractInputCreator
 {
     public static class TesseractInputFactory
     {
-
-        #region Constructor
-
         /// <summary>
         /// Generates a basic Tesseract input object maintaining the required constraints.
         /// </summary>
@@ -35,7 +32,7 @@ namespace TesseractInputCreator
             Font fontToUse,
             int pixelWidth,
             int pixelHeight,
-            int margin,
+            int margin = 0,
             Image background = null,
             Image overlay = null,
             int? seed = null)
@@ -78,58 +75,33 @@ namespace TesseractInputCreator
             return new TesseractInput(bitmap, symbolBoxes, seed.Value);
         }
 
-        /// <summary>
-        /// Generates the text on the image provided as well as calcuates the bounding boxes of each character.
-        /// </summary>
-        /// <param name="bitmap"></param>
-        /// <param name="inputText"></param>
-        /// <param name="font"></param>
-        /// <param name="multiLine">Currently not in use</param>
-        /// <returns>Returns the array of calculated box objects</returns>
-        /// <TODO>pt</TODO>
-        private static BoxObject[] GenerateText(Image bitmap, int margin, string inputText, Font font, bool multiLine = false)
+
+        private static BoxObject[] GenerateText(Image bitmap, string inputText, Font font, int margin, bool center, bool multiLine)
+        {
+            if (multiLine)
+                return DrawMultiLineText(bitmap, inputText, font, margin, center);
+
+            return DrawText(bitmap, inputText, font, margin, center);
+        }
+
+        private static BoxObject[] DrawText(Image bitmap, string inputText, Font font, int margin, bool center)
         {
             Graphics drawing = Graphics.FromImage(bitmap);
 
-            //measure the string to see how big the image needs to be
-            SizeF textSize = drawing.MeasureString(inputText, font);
-
-            // Do we need to scale down the font size? 
-            // The -50 allows for border margins
-            double widthRatio = (double)textSize.Width / ((double)bitmap.Width - (margin * 2));
-            double heightRatio = (double)textSize.Height / ((double)bitmap.Height - (margin * 2));
-            double biggest = widthRatio > heightRatio ? widthRatio : heightRatio;
-
-            Font fontToUse = new Font(font, font.Style);
-            // We need to scale the font size by the inverse of the bigger of the two
-            if (biggest > 1)
-                fontToUse = new Font(font.FontFamily, (int)(font.Size / biggest), font.Style);
-            //create a brush for the text
-            Brush textBrush = new SolidBrush(Color.Black);
 
 
-            // If you wanted to multiline this you need to find the start position for the first line
-            // and the start position for the second line.
-            // This assumes you have split the text into two lines already
-            // (easy to do by cutting the original string in half)
-            textSize = drawing.MeasureString(inputText, font);
-            int startX = bitmap.Width / 2 - ((int)textSize.Width / 2);
-            int startY = bitmap.Height / 2 - ((int)textSize.Height / 2);
 
-            startX = 0;
-            startY = 0;
-
-            // Generate the boxes and the image
-            BoxObject[] retVal = GetBoxes(fontToUse, inputText, startX, startY);
-            // String format generic typographic removes the leftmost padding which we don't account for in the boxes
-            drawing.DrawString(inputText, fontToUse, textBrush, startX, startY, StringFormat.GenericTypographic);
-
-            return retVal;
+            throw new NotImplementedException();
         }
 
-        #endregion
+        private static BoxObject[] DrawMultiLineText(Image bitmap, string inputText, Font font, int margin, bool center)
+        {
+            Graphics drawing = Graphics.FromImage(bitmap);
 
-        #region Methods
+
+            throw new NotImplementedException();
+        }
+
 
         /// <summary>
         /// Generate a random ascii character sequence (Human-readable so characters 33 to 126 inclusive)
@@ -182,7 +154,7 @@ namespace TesseractInputCreator
                             if (broken)
                                 break;
                             for (int y = 1; y < b.Height - 1; y++)
-                                if(IsNotWhite(b.GetPixel(x, y)))
+                                if (IsNotWhite(b.GetPixel(x, y)))
                                 {
                                     left = x;
 
@@ -260,6 +232,6 @@ namespace TesseractInputCreator
         }
     }
 
-    #endregion
+#endregion
 }
 
