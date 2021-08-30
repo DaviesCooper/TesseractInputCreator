@@ -47,9 +47,9 @@ Incorporating the Tesseract Input Creator into your workflow is incredibly strai
 As you can see, the text is not randomly generated when incorporating the library yourself. Instead you must generate the strings yourself. You will also have to set many of the other paramters such as `TesseractInputCreator.width` when creating images. These values are static so if you want some of the images to have different values you will have to change these parameters BEFORE calling the `NewTesseractInput()` method.
 
 #### TODO
-[ ] Image Paging | 
+- [ ] Image Paging | 
 Allow images to be aggregated into one using the supported paging functionality of both tif and box 
-[ ] Tight Boxes |
+- [ ] Tight Boxes |
 Incorporate the use of Ryan's box-finding algorithm after the initial boxes are found to make the boxes as tightly binding as possible
-[ ] WPF Creation |
+- [ ] WPF Creation |
 Create a WPF UI for the program
