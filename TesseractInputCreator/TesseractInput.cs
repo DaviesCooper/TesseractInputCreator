@@ -31,7 +31,7 @@ namespace TesseractInputCreator
         /// <summary>
         /// Seed value used for generating this input. Recorded so as to name the file with this.
         /// </summary>
-        private int seed;
+        private string fileName;
 
         #endregion
 
@@ -43,11 +43,11 @@ namespace TesseractInputCreator
         /// <param name="image">The tif image.</param>
         /// <param name="symbols">The symbolic representation.</param>
         /// <param name="seed">The seed used to create.</param>
-        public TesseractInput(Image image, BoxObject[] symbols, int seed)
+        public TesseractInput(Image image, BoxObject[] symbols, string fileName)
         {
             this.image = image;
             this.symbolBoxes = symbols;
-            this.seed = seed;
+            this.fileName = fileName;
         }
 
         #endregion
@@ -64,14 +64,14 @@ namespace TesseractInputCreator
         /// <param name="dispose">After writing, do we free up the resources used by the image?</param>
         public void SaveToDirectory(DirectoryInfo directory, bool createVerifier = false, bool dispose = false)
         {
-            string tifPath = Path.Combine(directory.FullName, seed.ToString() + ".tiff");
+            string tifPath = Path.Combine(directory.FullName, fileName + ".tiff");
             SaveTIF(tifPath);
-            string boxPath = Path.Combine(directory.FullName, seed.ToString() + ".box");
+            string boxPath = Path.Combine(directory.FullName, fileName + ".box");
             SaveBOX(boxPath);
             // Do this last because 
             if (createVerifier)
             {
-                string verifyPath = Path.Combine(directory.FullName, seed.ToString() + ".verify.png");
+                string verifyPath = Path.Combine(directory.FullName, fileName + ".verify.png");
                 SaveVerify(verifyPath);
             }
             if (dispose)

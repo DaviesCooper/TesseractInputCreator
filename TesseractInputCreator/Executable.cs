@@ -192,6 +192,11 @@ namespace TesseractInputCreator
                     Console.WriteLine("maximum length must be an integer greater than 0.");
                     System.Environment.Exit(-1);
                 }
+                if(maxStringLength < minStringLength)
+                {
+                    Console.WriteLine("maximum length must be larger than minimum length.");
+                    System.Environment.Exit(-1);
+                }
                 maxStringLength = maxInt;
                 minStringLength = minInt;
                 return;

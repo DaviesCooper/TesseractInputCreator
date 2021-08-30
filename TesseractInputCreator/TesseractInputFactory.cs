@@ -63,10 +63,10 @@ namespace TesseractInputCreator
         /// <summary>
         /// Produces a new tesseract input object for use in training a tesseract model.
         /// </summary>
-        /// <param name="text"></param>
-        /// <param name="seed"></param>
+        /// <param name="text">The text to write to the input</param>
+        /// <param name="fileName">The name to name the files</param>
         /// <returns></returns>
-        public static TesseractInput NewTesseractInput(string text, int seed)
+        public static TesseractInput NewTesseractInput(string text, string fileName)
         {
             // Set base image to use
             Image bitmap = new Bitmap(width, height);
@@ -93,7 +93,7 @@ namespace TesseractInputCreator
             }
 
             // Return the produced input object
-            return new TesseractInput(bitmap, boxObjects, seed);
+            return new TesseractInput(bitmap, boxObjects, fileName);
         }
 
         #region Helpers 
