@@ -37,6 +37,11 @@ namespace TesseractInputCreator
         /// </summary>
         public static int maxStringLength = 0;
 
+        /// <summary>
+        /// The number of inputs to create.
+        /// </summary>
+        public static int numberToGenerate = 0;
+
         #endregion
 
         #region Main
@@ -44,7 +49,14 @@ namespace TesseractInputCreator
         static void Main(string[] args)
         {
             ExtractArguments();
-            Console.ReadLine();
+            System.Random seeder = new Random();
+            for(int i = 0; i < numberToGenerate; i++)
+            {
+                int seed = seeder.Next(0, int.MaxValue);
+                Random rng = new Random(seed);
+                string text = GenerateRandomString(rng, minStringLength, maxStringLength);
+                TesseractInputFactory.NewTesseractInput(text, seed.ToString()).SaveToDirectory(outputDirectory, debug, true);   
+            }
         }
 
         #endregion
@@ -65,6 +77,9 @@ namespace TesseractInputCreator
             // Check if we are in debug mode
             debug = GetFlag(Config.DEBUG_FLAG);
 
+            // Parses how many inputs to create
+            ParseInputCount();
+
             // Extract the output directory
             ParseOutputDirectoryArgs();
 
@@ -84,18 +99,42 @@ namespace TesseractInputCreator
             ParseFlags();
         }
 
+        /// <summary>
+        /// Outputs a help text to the console.
+        /// </summary>
         private static void WriteHelp()
         {
             Console.WriteLine(
                 "Tesseract Input Creator (1.0)\n\n" +
                 "The tesseract input creator is a program used to generate a series of inputs to be used for" +
                 "training a tesseract OCR model.\n\n" +
-                "Usage: TesseractInputCreator {-WIDTH <+int>} {-HEIGHT <+int>}\n" +
-                "{-FONT <path> | -FAMILY <string> -STYLE {Regular | Bold | Italic | Underline | Strikeout}}\n"+
-                "{-OUT <path>} {-LENGTH { +int | \'+int,+int\' }}\n"+
+                "Usage: TesseractInputCreator {-NUM <+int>} {-WIDTH <+int>} {-HEIGHT <+int>}\n" +
+                "{-FONT <path> | -FAMILY <string> -STYLE {Regular | Bold | Italic | Underline | Strikeout}}\n" +
+                "{-OUT <path>} {-LENGTH { +int | \'+int,+int\' }}\n" +
                 "[-OVERLAY <path>] [-BACKGROUND <path>] [v] [h] [w] [t] [d]\n\n" +
                 "See github https://github.com/DaviesCooper/TesseractInputCreator for guide on argument usage."
                 );
+        }
+
+        /// <summary>
+        /// Parses the argument corresponding to the number of inputs to generate.
+        /// </summary>
+        private static void ParseInputCount()
+        {
+            // Get number
+            string num = GetArgument(Config.NUMBER_OF_INPUTS_KEY);
+            int intNum = -1;
+            if (String.IsNullOrEmpty(num))
+            {
+                Console.WriteLine("Number of inputs to generate is required.");
+                System.Environment.Exit(-1);
+            }
+            if(!int.TryParse(num, out intNum) || intNum < 1)
+            {
+                Console.WriteLine("Number of inputs must be a positive integer.");
+                System.Environment.Exit(-1);
+            }
+            numberToGenerate = intNum;
         }
 
         /// <summary>
@@ -192,7 +231,7 @@ namespace TesseractInputCreator
                     Console.WriteLine("maximum length must be an integer greater than 0.");
                     System.Environment.Exit(-1);
                 }
-                if(maxStringLength < minStringLength)
+                if (maxStringLength < minStringLength)
                 {
                     Console.WriteLine("maximum length must be larger than minimum length.");
                     System.Environment.Exit(-1);

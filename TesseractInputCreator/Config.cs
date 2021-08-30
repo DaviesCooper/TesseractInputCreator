@@ -12,6 +12,11 @@ namespace TesseractInputCreator
         #region Keys
 
         /// <summary>
+        /// The key used to declare how many inputs to generate.
+        /// </summary>
+        public const string NUMBER_OF_INPUTS_KEY = "-NUM";
+
+        /// <summary>
         /// The key used to declare the font path.
         /// </summary>
         public const string CUSTOM_FONT_PATH_KEY = "-FONT";
