@@ -31,7 +31,7 @@ namespace TesseractInputCreator
         /// <summary>
         /// Seed value used for generating this input. Recorded so as to name the file with this.
         /// </summary>
-        private int seed;
+        private string fileName;
 
         #endregion
 
@@ -43,11 +43,11 @@ namespace TesseractInputCreator
         /// <param name="image">The tif image.</param>
         /// <param name="symbols">The symbolic representation.</param>
         /// <param name="seed">The seed used to create.</param>
-        public TesseractInput(Image image, BoxObject[] symbols, int seed)
+        public TesseractInput(Image image, BoxObject[] symbols, string fileName)
         {
             this.image = image;
             this.symbolBoxes = symbols;
-            this.seed = seed;
+            this.fileName = fileName;
         }
 
         #endregion
@@ -64,14 +64,14 @@ namespace TesseractInputCreator
         /// <param name="dispose">After writing, do we free up the resources used by the image?</param>
         public void SaveToDirectory(DirectoryInfo directory, bool createVerifier = false, bool dispose = false)
         {
-            string tifPath = Path.Combine(directory.FullName, seed.ToString() + ".tiff");
+            string tifPath = Path.Combine(directory.FullName, fileName + ".tiff");
             SaveTIF(tifPath);
-            string boxPath = Path.Combine(directory.FullName, seed.ToString() + ".box");
+            string boxPath = Path.Combine(directory.FullName, fileName + ".box");
             SaveBOX(boxPath);
             // Do this last because 
             if (createVerifier)
             {
-                string verifyPath = Path.Combine(directory.FullName, seed.ToString() + ".verify.png");
+                string verifyPath = Path.Combine(directory.FullName, fileName + ".verify.png");
                 SaveVerify(verifyPath);
             }
             if (dispose)
@@ -108,6 +108,10 @@ namespace TesseractInputCreator
 
         /// <summary>
         /// Saves the boxObjects of the input to a .box file specified by the path.
+        /// <para/>
+        /// *IMPORTANT*: The Rectangle of the graphics are top-left origined while
+        /// the rectangle used for tesseract is bottom-left oriented. This save method
+        /// performs the conversion to have them all be bottom-left oriented.
         /// </summary>
         /// <param name="filePath">The path to save this .box to</param>
         private void SaveBOX(string filePath)
@@ -116,7 +120,16 @@ namespace TesseractInputCreator
             {
                 foreach (BoxObject obj in symbolBoxes)
                 {
-                    writer.WriteLine(obj.ToString());
+                    string toWrite = String.Format
+                    (
+                        "{0} {1} {2} {3} {4} 0",
+                        obj.symbol == '\n' ? '\t' : obj.symbol,
+                        obj.rectangle.Left.ToString(),
+                        (image.Height - obj.rectangle.Bottom).ToString(),
+                        obj.rectangle.Right.ToString(),
+                        (image.Height - obj.rectangle.Top).ToString()
+                    );
+                    writer.WriteLine(toWrite);
                 }
                 writer.Flush();
             }
@@ -150,7 +163,7 @@ namespace TesseractInputCreator
         {
             Image clone = new Bitmap(image.Width, image.Height);
             Graphics g = Graphics.FromImage(clone);
-            g.DrawImage(image, new Point(0,0));
+            g.DrawImage(image, new Point(0, 0));
             g.Dispose();
             return clone;
         }

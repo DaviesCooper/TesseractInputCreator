@@ -9,49 +9,67 @@ namespace TesseractInputCreator
 {
     public static class TesseractInputFactory
     {
-
-        #region Constructor
+        #region Fields
 
         /// <summary>
-        /// Generates a basic Tesseract input object maintaining the required constraints.
+        /// The width of the image to generate.
         /// </summary>
-        /// <param name="minLength">The minimum acceptable string length.</param>
-        /// <param name="maxLength">The maximum acceptable string length.</param>
-        /// <param name="multiLine">Whether the string needs to be broken up (Produces more "square" inputs.</param>
-        /// <param name="fontToUse">Which font to use for the text.</param>
-        /// <param name="pixelWidth">The width of the generated image.</param>
-        /// <param name="pixelHeight">The height of the generated image.</param>
-        /// <param name="margin">The margin of whitespace to place around the image.</param>
-        /// <param name="background">What image should be used as a background. Null indicates no image i.e. white canvas.<para/>
-        /// The background is assumed to have the same dimensions as specified by pixel width and height</param>
-        /// <param name="overlay">What image should be used as an overlay mask. Null indicates none.<para/>
-        /// The overlay is assumed to already have the alpha/transparency calculated into the image.<para/>
-        /// The overlay is assumed to have the same dimensions as specified by pixel width and height</param>
-        /// <param name="seed">What seed should be used for generating randomness. Null indicates it doesn't matter.</param>
-        public static TesseractInput GenerateTesseractInput(
-            int minLength,
-            int maxLength,
-            bool multiLine,
-            Font fontToUse,
-            int pixelWidth,
-            int pixelHeight,
-            int margin,
-            Image background = null,
-            Image overlay = null,
-            int? seed = null)
+        public static int width = 0;
+
+        /// <summary>
+        /// The height of the image to generate.
+        /// </summary>
+        public static int height = 0;
+
+        /// <summary>
+        /// Whether the generated text should be centered vertically.
+        /// </summary>
+        public static bool verticalCentering = false;
+
+        /// <summary>
+        /// Whether the generated text should be centered horizontally.
+        /// </summary>
+        public static bool horizontalCentering = false;
+
+        /// <summary>
+        /// Whether the generate text should wrap.
+        /// </summary>
+        public static bool textWrap = false;
+
+        /// <summary>
+        /// Whether the generated boxes should be further
+        /// processed to be as tight as possible.
+        /// </summary>
+        /// <remarks>Currently not implemented.</remarks>
+        public static bool tightBoxes = false;
+
+        /// <summary>
+        /// The background the text should be drawn upon.
+        /// </summary>
+        public static Image background = null;
+
+        /// <summary>
+        /// The overlay to draw ontop of the text.
+        /// </summary>
+        public static Image overlay = null;
+
+        /// <summary>
+        /// The font to draw the text with.
+        /// </summary>
+        public static Font font = null;
+
+        #endregion
+
+        /// <summary>
+        /// Produces a new tesseract input object for use in training a tesseract model.
+        /// </summary>
+        /// <param name="text">The text to write to the input</param>
+        /// <param name="fileName">The name to name the files</param>
+        /// <returns></returns>
+        public static TesseractInput NewTesseractInput(string text, string fileName)
         {
-            // Setting the seed if one wasn't provided.
-            // Casting to an int is fine since this cast truncates the MSB, which changes
-            // the least often.
-            if (!seed.HasValue)
-                seed = (int)(DateTime.Now.Ticks);
-            System.Random rng = new Random(seed.Value);
-
-            // Generate the string
-            string inputText = GenerateRandomString(rng, minLength, maxLength);
-
             // Set base image to use
-            Image bitmap = new Bitmap(pixelWidth, pixelHeight);
+            Image bitmap = new Bitmap(width, height);
             Graphics drawing = Graphics.FromImage(bitmap);
 
             //paint the background
@@ -64,7 +82,7 @@ namespace TesseractInputCreator
             drawing.Dispose();
 
             //Create base text image
-            BoxObject[] symbolBoxes = GenerateText(bitmap, margin, inputText, fontToUse, multiLine);
+            BoxObject[] boxObjects = Generate(bitmap, text);
 
             // If an overlay exists, overlay it on the image
             if (overlay != null)
@@ -75,129 +93,86 @@ namespace TesseractInputCreator
             }
 
             // Return the produced input object
-            return new TesseractInput(bitmap, symbolBoxes, seed.Value);
+            return new TesseractInput(bitmap, boxObjects, fileName);
         }
+
+        #region Helpers 
 
         /// <summary>
-        /// Generates the text on the image provided as well as calcuates the bounding boxes of each character.
+        /// Given an image and some text draws the text on the image with the provided formatting of this class.
+        /// Additionally returns the box objects of each character within the image as well.
         /// </summary>
-        /// <param name="bitmap"></param>
-        /// <param name="inputText"></param>
-        /// <param name="font"></param>
-        /// <param name="multiLine">Currently not in use</param>
-        /// <returns>Returns the array of calculated box objects</returns>
-        /// <TODO>pt</TODO>
-        private static BoxObject[] GenerateText(Image bitmap, int margin, string inputText, Font font, bool multiLine = false)
+        /// <param name="image">The image to manipulate.</param>
+        /// <param name="text">The text whose characters are to have their bounds measured and be drawn to the image.</param>
+        /// <returns></returns>
+        private static BoxObject[] Generate(Image image, string text)
         {
-            Graphics drawing = Graphics.FromImage(bitmap);
+            // Create Graphics object
+            Graphics graphic = Graphics.FromImage(image);
 
-            //measure the string to see how big the image needs to be
-            SizeF textSize = drawing.MeasureString(inputText, font);
-
-            // Do we need to scale down the font size? 
-            // The -50 allows for border margins
-            double widthRatio = (double)textSize.Width / ((double)bitmap.Width - (margin*2));
-            double heightRatio = (double)textSize.Height / ((double)bitmap.Height - (margin*2));
-            double biggest = widthRatio > heightRatio ? widthRatio : heightRatio;
-
-            Font fontToUse = new Font(font, font.Style);
-            // We need to scale the font size by the inverse of the bigger of the two
-            if (biggest > 1)
-                fontToUse = new Font(font.FontFamily, (int)(font.Size / biggest), font.Style);
-            //create a brush for the text
-            Brush textBrush = new SolidBrush(Color.Black);
-
-            textSize = drawing.MeasureString(inputText, font);
-            int startX = bitmap.Width / 2 - ((int)textSize.Width / 2);
-            int starty = bitmap.Height / 2 - ((int)textSize.Height / 2);
-
-            // Generate the boxes and the image
-            BoxObject[] retVal = GetBoxes(fontToUse, inputText, startX, starty);
-            // String format generic typographic removes the leftmost padding which we don't account for in the boxes
-            drawing.DrawString(inputText, fontToUse, textBrush, startX, starty, StringFormat.GenericTypographic);
-
-            return retVal;
-        }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Generate a random ascii character sequence (Human-readable so characters 33 to 126 inclusive)
-        /// guaranteed to be at least <paramref name="minLength"/> characters and at most 
-        /// <paramref name="maxLength"/> characters
-        /// </summary>
-        /// <param name="minLength">The minimum numbers of characters allowed in the string.</param>
-        /// <param name="maxLength">The maximum number of characters allowed in the string.</param>
-        private static string GenerateRandomString(System.Random rng, int minLength, int maxLength)
-        {
-            int textLength = rng.Next(minLength, maxLength + 1);
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < textLength; i++)
-            {
-                byte charToUse = (byte)rng.Next(33, 127);
-                builder.Append(Convert.ToChar(charToUse));
-            }
-            return builder.ToString();
-        }
-
-        private static BoxObject[] GetBoxes(Font font, string text, int startXPosition, int startYPosition)
-        {
-            int left = startXPosition;
-
-            // Dummy bitmap for string measuring
-            Image tempImage = new Bitmap(1, 1);
-            Graphics tempGraphics = Graphics.FromImage(tempImage);
-
-            BoxObject[] boxes = new BoxObject[text.Length];
+            // Generate the formatter
+            StringFormat format = new StringFormat();
+            format.Alignment = horizontalCentering ? StringAlignment.Center : StringAlignment.Near;
+            format.LineAlignment = verticalCentering ? StringAlignment.Center : StringAlignment.Near;
+            format.Trimming = StringTrimming.None;
+            format.FormatFlags =
+                StringFormatFlags.MeasureTrailingSpaces;
+            if (!textWrap)
+                format.FormatFlags |= StringFormatFlags.NoWrap;
+            CharacterRange[] ranges = new CharacterRange[text.Length];
             for (int i = 0; i < text.Length; i++)
             {
-                char ch = text[i];
+                ranges[i] = new CharacterRange(i, 1);
+            }
+            format.SetMeasurableCharacterRanges(ranges);
 
-                //actual width is the (width of XX) - (width of X) to ignore padding
-                var size = tempGraphics.MeasureString("" + ch, font);
-                var size2 = tempGraphics.MeasureString("" + ch + ch, font);
+            // Get the rectangles
+            List<RectangleF> results = CalculateCharacterBounds(text, graphic, format);
 
-                using (Bitmap b = new Bitmap((int)size.Width + 2, (int)size.Height + 2))
-                {
-                    using (Graphics g = Graphics.FromImage(b))
-                    {
-                        // Place the character on a canvas
-                        g.FillRectangle(Brushes.White, 0, 0, size.Width, size.Height);
-                        g.DrawString("" + ch, font, Brushes.Black, 0, 0);
-                        int top = -1;
-                        int bottom = -1;
+            // Draw the string
+            graphic.DrawString(text, font, Brushes.Black, new RectangleF(0, 0, width, height), format);
 
-                        //find the top row
-                        for (int y = 0; top < 0 && y < (int)size.Height - 1; y++)
-                            for (int x = 0; x < (int)size.Width; x++)
-                                if (b.GetPixel(x, y).B < 2)
-                                {
-                                    top = y;
-                                    break;
-                                }
-
-                        //find the bottom row
-                        for (int y = (int)(size.Height - 1); bottom < 0 && y > 1; y--)
-                            for (int x = 0; x < (int)size.Width - 1; x++)
-                                if (b.GetPixel(x, y).B < 2)
-                                {
-                                    bottom = y;
-                                    break;
-                                }
-
-                        Rectangle rect = new Rectangle(left, startYPosition + top, (int)(size2.Width - size.Width), bottom - top);
-                        boxes[i] = new BoxObject(ch, rect);
-                    }
-                    left += (int)(size2.Width - size.Width);
-                }
+            // generate the box objects
+            List<BoxObject> retVal = new List<BoxObject>();
+            for (int i = 0; i < text.Length; i++)
+            {
+                retVal.Add(new BoxObject(text[i], Rectangle.Ceiling(results[i])));
             }
 
-            tempImage.Dispose();
-            return boxes;
+            // Clena up memory
+            graphic.Dispose();
+
+            return retVal.ToArray();
+
+        }
+
+        /// <summary>
+        /// For a given string and format specification, calculates the bounding rectangle of each character in the string.
+        /// </summary>
+        /// <param name="text">The text to calculate.</param>
+        /// <param name="graphic">The graphic to perform the "rendering" with.</param>
+        /// <param name="format">The format of how to "render" string.</param>
+        /// <returns></returns>
+        private static List<RectangleF> CalculateCharacterBounds(string text,
+            Graphics graphic, StringFormat format)
+        {
+            List<RectangleF> result = new List<RectangleF>();
+
+            // Find the character range.
+            Region[] regions =
+                graphic.MeasureCharacterRanges(
+                    text, font, new RectangleF(0, 0, width, height),
+                    format);
+
+            // Convert the regions into rectangles.
+            foreach (Region region in regions)
+                result.Add(region.GetBounds(graphic));
+
+            return result;
         }
 
         #endregion
     }
+
 }
+
