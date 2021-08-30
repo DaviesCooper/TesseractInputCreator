@@ -49,9 +49,9 @@ As you can see, the text is not randomly generated when incorporating the librar
 
 Once you have an input `TesseractInput inp` object, you can save it to a file by calling `inp.SaveToDirectory()`
 #### TODO
-[ ] Image Paging | 
+- [ ] Image Paging | 
 Allow images to be aggregated into one using the supported paging functionality of both tif and box 
-[ ] Tight Boxes |
+- [ ] Tight Boxes |
 Incorporate the use of Ryan's box-finding algorithm after the initial boxes are found to make the boxes as tightly binding as possible
-[ ] WPF Creation |
+- [ ] WPF Creation |
 Create a WPF UI for the program
