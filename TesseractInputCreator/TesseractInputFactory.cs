@@ -24,17 +24,24 @@ namespace TesseractInputCreator
         /// <summary>
         /// Whether the generated text should be centered vertically.
         /// </summary>
-        public static bool verticalCentering = true;
+        public static bool verticalCentering = false;
 
         /// <summary>
         /// Whether the generated text should be centered horizontally.
         /// </summary>
-        public static bool horizontalCentering = true;
+        public static bool horizontalCentering = false;
 
         /// <summary>
-        /// Whether the generate text should be multiline.
+        /// Whether the generate text should wrap.
         /// </summary>
-        public static bool multiline = false;
+        public static bool textWrap = false;
+
+        /// <summary>
+        /// Whether the generated boxes should be further
+        /// processed to be as tight as possible.
+        /// </summary>
+        /// <remarks>Currently not implemented.</remarks>
+        public static bool tightBoxes = false;
 
         /// <summary>
         /// The background the text should be drawn upon.
@@ -49,7 +56,7 @@ namespace TesseractInputCreator
         /// <summary>
         /// The font to draw the text with.
         /// </summary>
-        public static Font font = new Font(FontFamily.GenericSansSerif, 12);
+        public static Font font = null;
 
         #endregion
 
@@ -110,7 +117,7 @@ namespace TesseractInputCreator
             format.Trimming = StringTrimming.None;
             format.FormatFlags =
                 StringFormatFlags.MeasureTrailingSpaces;
-            if (!multiline)
+            if (!textWrap)
                 format.FormatFlags |= StringFormatFlags.NoWrap;
             CharacterRange[] ranges = new CharacterRange[text.Length];
             for (int i = 0; i < text.Length; i++)
